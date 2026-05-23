@@ -1,0 +1,17 @@
+{
+  "name": "xliz",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "services/api",
+    "services/dispatcher",
+    "services/executor",
+    "frontend"
+  ],
+  "scripts": {
+    "install:all": "npm install --workspaces",
+    "build:services": "npm run build --workspace=services/api && npm run build --workspace=services/dispatcher && npm run build --workspace=services/executor",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}

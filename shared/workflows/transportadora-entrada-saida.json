@@ -1,0 +1,73 @@
+{
+  "workflow_id": "transportadora-entrada-saida",
+  "name": "Entrada e Saída Transportadora",
+  "description": "Registra entrada e saída de encomendas no portal da transportadora, iterando sobre cada código de barras.",
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://portal-transportadora.com/login",
+      "description": "Abre o portal"
+    },
+    {
+      "action": "fill",
+      "selector": "#username",
+      "value": "{{USERNAME}}",
+      "description": "Preenche usuário (variável de ambiente)"
+    },
+    {
+      "action": "fill",
+      "selector": "#password",
+      "value": "{{PASSWORD}}",
+      "description": "Preenche senha (variável de ambiente)"
+    },
+    {
+      "action": "click",
+      "selector": "#btn-login",
+      "description": "Clica em entrar"
+    },
+    {
+      "action": "wait_for",
+      "selector": ".dashboard",
+      "timeout_ms": 10000,
+      "description": "Aguarda o dashboard carregar"
+    },
+    {
+      "action": "navigate",
+      "url": "https://portal-transportadora.com/operacoes",
+      "description": "Navega para a tela de operações"
+    },
+    {
+      "action": "fill",
+      "selector": "#barcode-field",
+      "value": "{{barcode}}",
+      "description": "Digita o código de barras da encomenda"
+    },
+    {
+      "action": "click",
+      "selector": "#btn-entrada",
+      "description": "Registra entrada"
+    },
+    {
+      "action": "wait_for",
+      "selector": ".success-message",
+      "timeout_ms": 5000,
+      "description": "Aguarda confirmação de entrada"
+    },
+    {
+      "action": "click",
+      "selector": "#btn-saida",
+      "description": "Registra saída"
+    },
+    {
+      "action": "wait_for",
+      "selector": ".success-message",
+      "timeout_ms": 5000,
+      "description": "Aguarda confirmação de saída"
+    },
+    {
+      "action": "screenshot",
+      "filename": "confirmation-{{barcode}}.png",
+      "description": "Captura tela de confirmação para auditoria"
+    }
+  ]
+}
