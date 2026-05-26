@@ -15,12 +15,40 @@
 #   click_if_exists   — clica se existir, ignora se nao (seletor, timeout?)
 #   press             — pressiona tecla (tecla, seletor opcional)
 #   type_keys         — digita via teclado global, sem seletor (valor, delay_tecla?)
+#   wait              — pausa fixa em ms (ms: 500)
 #   wait_for_selector — aguarda elemento aparecer (seletor)
 #   wait_for_navigation — aguarda carregamento da pagina (estado?)
 #   check_success     — valida texto de retorno (seletor, texto_esperado?)
 #   fail_if_visible   — falha SE o seletor aparecer — usa para detectar erros
 #                       (seletor, timeout?, mensagem?)
 #   screenshot        — tira screenshot (nome?)
+#
+# ── COMO USAR fail_if_visible PARA DETECTAR FALHAS NO DESPACHO ──────────────
+#
+# O xd-app.loggi.com responde ao bip de duas formas:
+#
+#   SUCESSO  → o campo e limpo silenciosamente; nenhum elemento de erro aparece.
+#   FALHA    → um elemento de erro fica visivel por alguns segundos com a
+#              mensagem do site (ex: "Codigo nao encontrado", "Placa invalida").
+#
+# fail_if_visible aguarda o seletor por 'timeout' ms:
+#   - Se o elemento APARECER dentro do timeout → FlowError com o texto do site.
+#   - Se o timeout ESGOTAR sem aparecer         → silencio = sucesso.
+#
+# Seletores tipicos de erro no xd-app.loggi.com (inspecione e ajuste):
+#   [role='alert']                    — toast de erro generico
+#   .error, .toast-error              — classes comuns de erro
+#   [data-testid='error-message']     — atributo de teste de erro
+#   [class*='ErrorMessage']           — classes com "ErrorMessage"
+#   [class*='Toast'][class*='error']  — toasts de erro
+#
+# Para descobrir o seletor correto:
+#   1. Abra o xd-app, va ate a tela de bip
+#   2. Bipe um codigo invalido proposital
+#   3. Com a mensagem de erro visivel, abra DevTools (F12)
+#   4. Clique no elemento de erro com "Inspect" e copie o seletor
+#   5. Atualize o campo 'seletor' em fail_if_visible abaixo
+#
 # ─────────────────────────────────────────────────────────────────────────────
 
 site_receber:
@@ -50,8 +78,12 @@ sons:
 
 fluxo_entrada_pacote:
   - acao: fill
-    seletor: "[data-testid='emailInput']"   # <- AJUSTAR com seletor real
+    seletor: "input[placeholder*='Bipe para receber pacotes e sacas']"
     valor: "{{codigo}}"
+  - acao: press
+    seletor: "input[placeholder*='Bipe para receber pacotes e sacas']"
+    tecla: "Enter"
+
 
 
 # ── DESPACHO — CODIGO (executado uma vez por pacote) ─────────────────────────
@@ -62,10 +94,13 @@ fluxo_entrada_pacote:
 #
 # Fluxo:
 #   1. Clica no body para garantir foco na pagina
-#   2. Digita o codigo via teclado (type_keys simula scanner com delay por tecla)
-#   3. Pressiona Enter para confirmar
-#   4. Aguarda ate 3s:
-#        - Se aparecer elemento de ERRO  → falha, loga a mensagem do site
+#   2. Aguarda 500ms para a pagina estabilizar
+#   3. Digita o codigo via teclado (type_keys simula scanner com delay por tecla)
+#   4. Aguarda 200ms antes de pressionar Enter
+#   5. Pressiona Enter para confirmar
+#   6. Aguarda 500ms para o site processar
+#   7. Detecta erro:
+#        - Se aparecer elemento de ERRO  → falha com a mensagem do site
 #        - Se nao aparecer nenhum erro   → sucesso (site limpou o campo)
 #
 # AJUSTAR (obrigatorio):
@@ -73,8 +108,8 @@ fluxo_entrada_pacote:
 #   bipar um codigo invalido e copie o seletor aqui.
 #
 # AJUSTAR (opcional):
-#   delay_tecla → ms entre cada caractere. 50ms funciona bem para a maioria
-#   dos sites; aumente se o site perder teclas.
+#   delay_tecla  → ms entre cada caractere (50ms funciona bem; aumente se perder teclas)
+#   ms nos waits → ajuste conforme velocidade de resposta do site
 # ─────────────────────────────────────────────────────────────────────────────
 
 fluxo_despacho_codigo:
@@ -82,18 +117,35 @@ fluxo_despacho_codigo:
   - acao: click
     seletor: "body"
 
-  # 2. digita o codigo via teclado global (simula scanner fisico)
+  # 2. pequena pausa para a pagina estabilizar apos o clique
+  - acao: wait
+    ms: 500
+
+  # 3. digita o codigo via teclado global (simula scanner fisico)
   - acao: type_keys
     valor: "{{codigo}}"
     delay_tecla: 50        # ms entre cada tecla — aumente se o site perder caracteres
 
-  # 3. confirma
+  # 4. pausa antes de confirmar (evita que Enter seja enviado antes do codigo completo)
+  - acao: wait
+    ms: 200
+
+  # 5. confirma
   - acao: press
     tecla: "Enter"
 
-  # 4. detecta erro — se o seletor aparecer em ate 3s, o despacho falhou
+  # 6. aguarda o site processar o codigo
+  - acao: wait
+    ms: 500
+
+  # 7. detecta erro — se o seletor aparecer em ate 3s, o despacho falhou
   #    AJUSTAR: substitua pelo seletor real da caixa de erro do site
+  #    Exemplos de seletores a testar:
+  #      [role='alert']
+  #      [class*='ErrorMessage']
+  #      [class*='Toast'][class*='error']
+  #      [data-testid='error-message']
   - acao: fail_if_visible
     seletor: "[role='alert'], .error, [data-testid='error-message'], .toast-error"
-    timeout: 3000
+    timeout: 2000
     mensagem: "Falha no despacho — verifique o codigo"
