@@ -119,16 +119,16 @@ fluxo_despacho_codigo:
 
   # 2. pequena pausa para a pagina estabilizar apos o clique
   - acao: wait
-    ms: 500
+    ms: 50
 
   # 3. digita o codigo via teclado global (simula scanner fisico)
   - acao: type_keys
     valor: "{{codigo}}"
-    delay_tecla: 50        # ms entre cada tecla — aumente se o site perder caracteres
+    # delay_tecla: 50        # ms entre cada tecla — aumente se o site perder caracteres
 
   # 4. pausa antes de confirmar (evita que Enter seja enviado antes do codigo completo)
   - acao: wait
-    ms: 200
+    ms: 50
 
   # 5. confirma
   - acao: press
@@ -136,16 +136,16 @@ fluxo_despacho_codigo:
 
   # 6. aguarda o site processar o codigo
   - acao: wait
-    ms: 500
+    ms: 100
 
   # 7. detecta erro — se o seletor aparecer em ate 3s, o despacho falhou
   #    AJUSTAR: substitua pelo seletor real da caixa de erro do site
   #    Exemplos de seletores a testar:
   #      [role='alert']
-  #      [class*='ErrorMessage']
+  #      [class*='MuiAlert-message']
   #      [class*='Toast'][class*='error']
   #      [data-testid='error-message']
   - acao: fail_if_visible
-    seletor: "[role='alert'], .error, [data-testid='error-message'], .toast-error"
-    timeout: 2000
+    seletor: "[class*='MuiAlert-message']"
+    timeout: 200
     mensagem: "Falha no despacho — verifique o codigo"
