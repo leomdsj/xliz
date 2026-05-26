@@ -1,0 +1,99 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# config.yaml — LizFlow / Loggi
+#
+# SITES
+#   site_receber:  arco.loggi.com   — entrada de pacotes
+#   site_despacho: xd-app.loggi.com — distribuicao / despacho
+#
+# Variaveis disponiveis nos fluxos:
+#   {{codigo}}  — codigo de barras do pacote (cada iteracao do loop)
+#
+# Acoes suportadas:
+#   fill              — preenche um input (seletor + valor)
+#   clear             — limpa um input    (seletor)
+#   click             — clica num elemento (seletor)
+#   click_if_exists   — clica se existir, ignora se nao (seletor, timeout?)
+#   press             — pressiona tecla (tecla, seletor opcional)
+#   type_keys         — digita via teclado global, sem seletor (valor, delay_tecla?)
+#   wait_for_selector — aguarda elemento aparecer (seletor)
+#   wait_for_navigation — aguarda carregamento da pagina (estado?)
+#   check_success     — valida texto de retorno (seletor, texto_esperado?)
+#   fail_if_visible   — falha SE o seletor aparecer — usa para detectar erros
+#                       (seletor, timeout?, mensagem?)
+#   screenshot        — tira screenshot (nome?)
+# ─────────────────────────────────────────────────────────────────────────────
+
+site_receber:
+  url: "https://arco.loggi.com/"
+
+site_despacho:
+  url: "https://xd-app.loggi.com/login"
+
+comportamento:
+  delay_entre_acoes: 0.4   # segundos de pausa entre cada passo do fluxo
+  timeout_elemento:  15    # segundos aguardando seletores aparecerem
+  headless:          false
+
+sons:
+  sucesso: "sons/sucesso.wav"
+  falha:   "sons/falha.wav"
+
+
+# ── ENTRADA DE PACOTE ─────────────────────────────────────────────────────────
+#
+# Contexto: usuario ja fez login em arco.loggi.com, selecionou
+#           "Na base" no dropdown "Hoje", campo de bipagem visivel.
+#
+# AJUSTAR: inspecione o campo de bip (botao direito → Inspecionar) e
+#          substitua o seletor abaixo pelo id/name/placeholder real.
+# ─────────────────────────────────────────────────────────────────────────────
+
+fluxo_entrada_pacote:
+  - acao: fill
+    seletor: "[data-testid='emailInput']"   # <- AJUSTAR com seletor real
+    valor: "{{codigo}}"
+
+
+# ── DESPACHO — CODIGO (executado uma vez por pacote) ─────────────────────────
+#
+# Contexto: usuario ja fez login em xd-app.loggi.com, selecionou a base,
+#           navegou em Distribuir e informou a placa. A pagina esta aguardando
+#           digitacao do codigo (listener de teclado global — sem input visivel).
+#
+# Fluxo:
+#   1. Clica no body para garantir foco na pagina
+#   2. Digita o codigo via teclado (type_keys simula scanner com delay por tecla)
+#   3. Pressiona Enter para confirmar
+#   4. Aguarda ate 3s:
+#        - Se aparecer elemento de ERRO  → falha, loga a mensagem do site
+#        - Se nao aparecer nenhum erro   → sucesso (site limpou o campo)
+#
+# AJUSTAR (obrigatorio):
+#   seletor em fail_if_visible → inspecione a caixa de erro que aparece ao
+#   bipar um codigo invalido e copie o seletor aqui.
+#
+# AJUSTAR (opcional):
+#   delay_tecla → ms entre cada caractere. 50ms funciona bem para a maioria
+#   dos sites; aumente se o site perder teclas.
+# ─────────────────────────────────────────────────────────────────────────────
+
+fluxo_despacho_codigo:
+  # 1. garante foco na pagina
+  - acao: click
+    seletor: "body"
+
+  # 2. digita o codigo via teclado global (simula scanner fisico)
+  - acao: type_keys
+    valor: "{{codigo}}"
+    delay_tecla: 50        # ms entre cada tecla — aumente se o site perder caracteres
+
+  # 3. confirma
+  - acao: press
+    tecla: "Enter"
+
+  # 4. detecta erro — se o seletor aparecer em ate 3s, o despacho falhou
+  #    AJUSTAR: substitua pelo seletor real da caixa de erro do site
+  - acao: fail_if_visible
+    seletor: "[role='alert'], .error, [data-testid='error-message'], .toast-error"
+    timeout: 3000
+    mensagem: "Falha no despacho — verifique o codigo"
