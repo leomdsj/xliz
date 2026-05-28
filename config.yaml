@@ -1,13 +1,3 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# config.yaml — LizFlow / Loggi
-#
-# SITES
-#   site_receber:  arco.loggi.com   — entrada de pacotes
-#   site_despacho: xd-app.loggi.com — distribuicao / despacho
-#
-# Variaveis disponiveis nos fluxos:
-#   {{codigo}}  — codigo de barras do pacote (cada iteracao do loop)
-#
 # Acoes suportadas:
 #   fill              — preenche um input (seletor + valor)
 #   clear             — limpa um input    (seletor)
@@ -15,41 +5,14 @@
 #   click_if_exists   — clica se existir, ignora se nao (seletor, timeout?)
 #   press             — pressiona tecla (tecla, seletor opcional)
 #   type_keys         — digita via teclado global, sem seletor (valor, delay_tecla?)
-#   wait              — pausa fixa em ms (ms: 500)
+#   wait              — pausa fixa em ms (ms: 500) — usar apenas se necessario
 #   wait_for_selector — aguarda elemento aparecer (seletor)
 #   wait_for_navigation — aguarda carregamento da pagina (estado?)
 #   check_success     — valida texto de retorno (seletor, texto_esperado?)
 #   fail_if_visible   — falha SE o seletor aparecer — usa para detectar erros
 #                       (seletor, timeout?, mensagem?)
 #   screenshot        — tira screenshot (nome?)
-#
-# ── COMO USAR fail_if_visible PARA DETECTAR FALHAS NO DESPACHO ──────────────
-#
-# O xd-app.loggi.com responde ao bip de duas formas:
-#
-#   SUCESSO  → o campo e limpo silenciosamente; nenhum elemento de erro aparece.
-#   FALHA    → um elemento de erro fica visivel por alguns segundos com a
-#              mensagem do site (ex: "Codigo nao encontrado", "Placa invalida").
-#
-# fail_if_visible aguarda o seletor por 'timeout' ms:
-#   - Se o elemento APARECER dentro do timeout → FlowError com o texto do site.
-#   - Se o timeout ESGOTAR sem aparecer         → silencio = sucesso.
-#
-# Seletores tipicos de erro no xd-app.loggi.com (inspecione e ajuste):
-#   [role='alert']                    — toast de erro generico
-#   .error, .toast-error              — classes comuns de erro
-#   [data-testid='error-message']     — atributo de teste de erro
-#   [class*='ErrorMessage']           — classes com "ErrorMessage"
-#   [class*='Toast'][class*='error']  — toasts de erro
-#
-# Para descobrir o seletor correto:
-#   1. Abra o xd-app, va ate a tela de bip
-#   2. Bipe um codigo invalido proposital
-#   3. Com a mensagem de erro visivel, abra DevTools (F12)
-#   4. Clique no elemento de erro com "Inspect" e copie o seletor
-#   5. Atualize o campo 'seletor' em fail_if_visible abaixo
-#
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 site_receber:
   url: "https://arco.loggi.com/"
@@ -58,23 +21,10 @@ site_despacho:
   url: "https://xd-app.loggi.com/login"
 
 comportamento:
-  delay_entre_acoes: 0.4   # segundos de pausa entre cada passo do fluxo
-  timeout_elemento:  15    # segundos aguardando seletores aparecerem
+  delay_entre_acoes: 0      # sem delay artificial — o site valida na propria pagina
+  timeout_elemento:  15     # segundos aguardando seletores aparecerem
   headless:          false
 
-sons:
-  sucesso: "sons/sucesso.wav"
-  falha:   "sons/falha.wav"
-
-
-# ── ENTRADA DE PACOTE ─────────────────────────────────────────────────────────
-#
-# Contexto: usuario ja fez login em arco.loggi.com, selecionou
-#           "Na base" no dropdown "Hoje", campo de bipagem visivel.
-#
-# AJUSTAR: inspecione o campo de bip (botao direito → Inspecionar) e
-#          substitua o seletor abaixo pelo id/name/placeholder real.
-# ─────────────────────────────────────────────────────────────────────────────
 
 fluxo_entrada_pacote:
   - acao: fill
@@ -85,67 +35,27 @@ fluxo_entrada_pacote:
     tecla: "Enter"
 
 
-
-# ── DESPACHO — CODIGO (executado uma vez por pacote) ─────────────────────────
-#
-# Contexto: usuario ja fez login em xd-app.loggi.com, selecionou a base,
-#           navegou em Distribuir e informou a placa. A pagina esta aguardando
-#           digitacao do codigo (listener de teclado global — sem input visivel).
-#
-# Fluxo:
-#   1. Clica no body para garantir foco na pagina
-#   2. Aguarda 500ms para a pagina estabilizar
-#   3. Digita o codigo via teclado (type_keys simula scanner com delay por tecla)
-#   4. Aguarda 200ms antes de pressionar Enter
-#   5. Pressiona Enter para confirmar
-#   6. Aguarda 500ms para o site processar
-#   7. Detecta erro:
-#        - Se aparecer elemento de ERRO  → falha com a mensagem do site
-#        - Se nao aparecer nenhum erro   → sucesso (site limpou o campo)
-#
-# AJUSTAR (obrigatorio):
-#   seletor em fail_if_visible → inspecione a caixa de erro que aparece ao
-#   bipar um codigo invalido e copie o seletor aqui.
-#
-# AJUSTAR (opcional):
-#   delay_tecla  → ms entre cada caractere (50ms funciona bem; aumente se perder teclas)
-#   ms nos waits → ajuste conforme velocidade de resposta do site
-# ─────────────────────────────────────────────────────────────────────────────
-
 fluxo_despacho_codigo:
-  # 1. garante foco na pagina
-  - acao: click
-    seletor: "body"
-
   # 2. pequena pausa para a pagina estabilizar apos o clique
   - acao: wait
     ms: 50
 
-  # 3. digita o codigo via teclado global (simula scanner fisico)
+  # 1. garante foco na pagina
+  - acao: click
+    seletor: "body"
+
+  # 2. digita o codigo via teclado global (simula scanner fisico)
   - acao: type_keys
     valor: "{{codigo}}"
-    # delay_tecla: 50        # ms entre cada tecla — aumente se o site perder caracteres
+    delay_tecla: 10
 
-  # 4. pausa antes de confirmar (evita que Enter seja enviado antes do codigo completo)
-  - acao: wait
-    ms: 50
-
-  # 5. confirma
+  # 3. confirma
   - acao: press
     tecla: "Enter"
 
-  # 6. aguarda o site processar o codigo
-  - acao: wait
-    ms: 100
-
-  # 7. detecta erro — se o seletor aparecer em ate 3s, o despacho falhou
+  # 4. detecta erro — se o seletor aparecer em ate 3s, o despacho falhou
   #    AJUSTAR: substitua pelo seletor real da caixa de erro do site
-  #    Exemplos de seletores a testar:
-  #      [role='alert']
-  #      [class*='MuiAlert-message']
-  #      [class*='Toast'][class*='error']
-  #      [data-testid='error-message']
   - acao: fail_if_visible
     seletor: "[class*='MuiAlert-message']"
-    timeout: 200
+    timeout: 500
     mensagem: "Falha no despacho — verifique o codigo"
