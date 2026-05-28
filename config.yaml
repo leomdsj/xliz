@@ -59,3 +59,6 @@ fluxo_despacho_codigo:
     seletor: "[class*='MuiAlert-message']"
     timeout: 500
     mensagem: "Falha no despacho — verifique o codigo"
+
+
+    # text
