@@ -62,3 +62,9 @@ fluxo_despacho_codigo:
 
 
     # text
+
+
+fluxo_validar_recepcao:
+  - acao: check_url_contains
+    valor: "BN7"
+    mensagem: "A URL do navegador nao contem 'BN7'.\nVoce esta na base correta para recebimento?"
