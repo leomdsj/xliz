@@ -26,6 +26,42 @@ comportamento:
   headless:          false
 
 
+# ── Login automatico (opcional) ───────────────────────────────────────────────
+# Executado logo apos abrir o browser, ANTES do operador clicar "Pronto para Bipar".
+# Requer usuario e senha salvos em Configuracoes > Credenciais.
+# Se as credenciais nao estiverem salvas, estes fluxos sao IGNORADOS automaticamente.
+# As variaveis {{usuario}} e {{senha}} sao injetadas pelo sistema em tempo de execucao.
+#
+# Ajuste os seletores abaixo se o site usar campos diferentes.
+# O seletor padrao "input[type='email']" funciona na maioria dos logins Cognito/Loggi.
+
+fluxo_login_arco:
+  - acao: fill
+    seletor: "[data-testid='emailInput']"
+    valor: "{{usuario}}"
+  - acao: fill
+    seletor: "[data-testid='passwordInput']"
+    valor: "{{senha}}"
+  - acao: press
+    seletor: "[data-testid='passwordInput']"
+    tecla: "Enter"
+  - acao: wait_for_navigation
+    estado: domcontentloaded
+
+fluxo_login_xd:
+  - acao: fill
+    seletor: "[name='email']"
+    valor: "{{usuario}}"
+  - acao: fill
+    seletor: "[name='password']"
+    valor: "{{senha}}"
+  - acao: press
+    seletor: "[name='password']"
+    tecla: "Enter"
+  - acao: wait_for_navigation
+    estado: domcontentloaded
+
+
 fluxo_entrada_pacote:
   - acao: fill
     seletor: "input[placeholder*='Bipe para receber pacotes e sacas']"
@@ -53,11 +89,12 @@ fluxo_despacho_codigo:
   - acao: press
     tecla: "Enter"
 
-  # 4. detecta erro — se o seletor aparecer em ate 3s, o despacho falhou
-  #    AJUSTAR: substitua pelo seletor real da caixa de erro do site
+  # 4. detecta erro — aguarda ate 2500ms pelo alerta de erro do XD
+  #    O XD faz chamada de API antes de exibir o erro; 500ms era insuficiente.
+  #    Aumente se ainda perder erros; reduza se o despacho estiver lento demais.
   - acao: fail_if_visible
     seletor: "[class*='MuiAlert-message']"
-    timeout: 500
+    timeout: 2500
     mensagem: "Falha no despacho — verifique o codigo"
 
 
