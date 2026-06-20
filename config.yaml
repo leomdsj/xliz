@@ -69,6 +69,10 @@ fluxo_entrada_pacote:
   - acao: press
     seletor: "input[placeholder*='Bipe para receber pacotes e sacas']"
     tecla: "Enter"
+  - acao: check_success
+    seletor: "[role='alert']:has-text('{{codigo}}')"
+    texto_esperado: "bipada"
+    mensagem: "Arco nao confirmou o recebimento do pacote"
 
 
 fluxo_despacho_codigo:
